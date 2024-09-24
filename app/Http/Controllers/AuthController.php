@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
-use DateTime;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
 class AuthController extends Controller
 {
+
+    CONST TOKEN_EXPIRY_TIME = 24;
+
     public function register(Request $request){
         $data = $request->validate([
             'name' => 'required|string|max:255',
@@ -16,14 +19,14 @@ class AuthController extends Controller
             'password' => 'required|string|min:8',
         ]);
 
-        $dateTime = new DateTime();
-
-        $data["data"]["created_at"] = $dateTime->format("Y-m-d H:i:s");
-        $data["data"]["updated_at"] = $dateTime->format("Y-m-d H:i:s");
+        $data["data"]["created_at"] = Carbon::now()->format("Y-m-d H:i:s");
+        $data["data"]["updated_at"] = Carbon::now()->format("Y-m-d H:i:s");
 
         $user = User::create($data);
 
-        $token = $user->createToken('authToken')->plainTextToken;
+        $expiryDate = Carbon::now()->addHours(self::TOKEN_EXPIRY_TIME);
+
+        $token = $user->createToken('authToken', ['*'], $expiryDate)->plainTextToken;
 
         return response()->json([
             'user' => $user,
@@ -43,11 +46,13 @@ class AuthController extends Controller
 
         if (!$user || !Hash::check($data['password'], $user->password)) {
             return response()->json([
-                'message' => 'Unauthorized'
+                'message' => 'Incorrect Details'
             ], 401);
         }
 
-        $token = $user->createToken('authToken')->plainTextToken;
+        $expiryDate = Carbon::now()->addHours(self::TOKEN_EXPIRY_TIME);
+
+        $token = $user->createToken('authToken', ['*'], $expiryDate)->plainTextToken;
 
         return response()->json([
             'user' => $user,
@@ -57,9 +62,23 @@ class AuthController extends Controller
 
 
     public function session(Request $request){
+
+        $user = $request->user();
+
+        if (!$user) {
+            return response()->json([
+                'error' => 'User not authenticated.'
+            ], 401);
+        }
+
         return response()->json([
-            'user' => $request->user(),
+            'user' => $user,
         ]);
+    }
+
+    public function logout(Request $request){
+        $request->user()->currentAccessToken()->delete();
+        return response()->json(['message' => 'Logout Successful']);
     }
 
 }

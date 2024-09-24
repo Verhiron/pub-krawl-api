@@ -17,6 +17,25 @@ class PubController extends Controller
         return ApiResponse::success($pubs);
     }
 
+    public function getPubByCity($city, Request $request){
+        try{
+            $search = request()->input('search', '');
+
+            $pub_query = DB::table('pubs')->where('city', '=', $city);
+
+            if($search !== ""){
+                $pub_query->where('pub_name', 'LIKE', "%{$search}%");
+            }
+
+            $cities = $pub_query->get();
+
+            return ApiResponse::success($cities);
+
+        }catch (Exception $e){
+            return ApiResponse::error('Failed to retrieve city', 500, $e->getMessage());
+        }
+    }
+
 //    public function getMainPubContent($country_iso, Request $request)
 //    {
 //        try {
@@ -190,9 +209,9 @@ class PubController extends Controller
         }
 
         $pub_id = DB::table('pubs')->where('slug', $slug)->select('pub_id')->first();
-        $pub_reviews = DB::table('pub_reviews')->where('pub', $pub_id->pub_id)->get();
+        $pub_reviews = DB::table('pub_reviews')->where('pub', $pub_id->pub_id)->select('review_reference', 'created_at')->get();
         $pub_details = DB::table('country_pub_view')->where('slug', $slug)->first();
-        $pub_details_extended = DB::table('pub_info')->where('pub', $pub_id->pub_id)->select('average_atmosphere_rating', 'average_aesthetic_rating', 'average_beer_selection_rating', 'average_value_rating', 'average_furniture_rating', 'average_bathroom_rating')->first();
+        $pub_details_extended = DB::table('pub_info')->where('pub', $pub_id->pub_id)->select('average_atmosphere_rating', 'average_aesthetic_rating', 'average_beer_selection_rating', 'average_value_rating', 'average_furniture_rating', 'average_bathroom_rating', 'overall_rating')->first();
 
 
         $response = [

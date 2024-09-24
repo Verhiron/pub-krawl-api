@@ -15,6 +15,7 @@ class CountryController extends Controller
         try{
             $page = request()->input('page', 1);
             $search = request()->input('search', '');
+            $limit = request()->input('limit', 10);
 
 
             $countries_query = DB::table('countries')->orderByDesc('priority');
@@ -23,12 +24,13 @@ class CountryController extends Controller
                 $countries_query->where('country', 'LIKE', "%{$search}%");
             }
 
-            $countries = $countries_query->paginate(10, ['*'], 'page', $page);
+            $countries = $countries_query->paginate($limit, ['*'], 'page', $page);
 
             return ApiResponse::success($countries);
 
         }catch (Exception $e){
-            return ApiResponse::error('Failed to retrieve users', 500, $e->getMessage());
+            return ApiResponse::error('Failed to retrieve countries', 500, $e->getMessage());
         }
     }
+
 }
